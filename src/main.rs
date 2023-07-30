@@ -11,9 +11,14 @@ struct AppState {
     count2: i32,
 }
 
+struct AppState2 {
+    message: String,
+}
+
 #[tokio::main]
 async fn main() {
     let shared_state: Arc<Mutex<AppState>> = Arc::new(Mutex::new(AppState { count1: 0, count2: 10000 }));
+    let shared_state2 = Arc::new(AppState2 { message: "Hello, World!".to_string() });
 
     let router1 = Router::new().route("/", get(hello_world_handler));
     let router2 = Router::new().route("/", get(decr_handler));
@@ -21,7 +26,9 @@ async fn main() {
     let app: Router = Router::new()
         .nest("/", router1)
         .nest("/decr", router2)
+        .route("/message", get(message_handler))
         .with_state(shared_state)
+        .with_state(shared_state2)
         ;
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
@@ -46,4 +53,10 @@ async fn decr_handler(
     println!("{}", state.count2);
     state.count2 = state.count2 - 1;
     Html(format!("<a href=\"/decr\">decr</a><br /><a href=\"/\">incr</a><br /><span>current: {}</span>", state.count2))
+}
+
+async fn message_handler(
+    State(state): State<Arc<AppState2>>,
+) -> impl IntoResponse {
+    state.message.clone()
 }
