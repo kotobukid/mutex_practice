@@ -20,15 +20,16 @@ async fn main() {
     let shared_state: Arc<Mutex<AppState>> = Arc::new(Mutex::new(AppState { count1: 0, count2: 10000 }));
     let shared_state2 = Arc::new(AppState2 { message: "Hello, World!".to_string() });
 
-    let router1 = Router::new().route("/", get(hello_world_handler));
-    let router2 = Router::new().route("/", get(decr_handler));
+    let router1 = Router::new()
+        .route("/", get(hello_world_handler))
+        .route("/decr", get(decr_handler)).with_state(shared_state)
+        ;
+    let router2 = Router::new().route("/", get(message_handler))
+        .with_state(shared_state2);
 
     let app: Router = Router::new()
         .nest("/", router1)
-        .nest("/decr", router2)
-        .route("/message", get(message_handler))
-        .with_state(shared_state)
-        .with_state(shared_state2)
+        .nest("/message", router2)
         ;
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
